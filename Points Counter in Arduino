@@ -1,0 +1,167 @@
+// Laboratorio de Sistemas Embebidos
+// Circuito que simula un contador de puntos
+// 16 de junio de 2023
+// Hernández
+
+#include <avr/interrupt.h> // Incluye la biblioteca para manejar interrupciones
+
+// Variables globales
+unsigned long tiempoE = 3000; // Tiempo establecido (3000 ms)
+unsigned long tiempoI = 0; // Variable para almacenar el tiempo inicial
+int i; // Contador para encender los pines 2 al 8
+int j, k; // Contadores para controlar el incremento/decremento
+int pinRojo = A0; // Pin para el LED rojo
+int pinVerde = A2; // Pin para el LED verde
+int pinAzul = A1; // Pin para el LED azul
+volatile bool pulsadorAplastado = false; // Indica si se ha presionado un pulsador
+volatile bool pulsadorRojo = false; // Indica si se ha presionado el pulsador rojo
+volatile bool pulsadorVerde = false; // Indica si se ha presionado el pulsador verde
+int g = 20; // Valor de referencia para el contador
+
+void setup() {
+    Serial.begin(9600); // Inicializa la comunicación serie a 9600 baudios
+    pinMode(2, INPUT); // Configura el pin 2 como entrada (pulsador rojo)
+    pinMode(3, INPUT); // Configura el pin 3 como entrada (pulsador verde)
+    pinMode(12, OUTPUT); // Configura el pin 12 como salida
+    pinMode(pinRojo, OUTPUT); // Configura el pin rojo como salida
+    pinMode(pinVerde, OUTPUT); // Configura el pin verde como salida
+    pinMode(pinAzul, OUTPUT); // Configura el pin azul como salida
+
+    // Configura los pines del 4 al 10 como salidas y los apaga
+    for (i = 4; i <= 10; i++) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
+
+    // Configura interrupciones en los pines 2 y 3
+    attachInterrupt(digitalPinToInterrupt(2), anotacionRojo, RISING); // Interrupción para el pulsador rojo
+    attachInterrupt(digitalPinToInterrupt(3), anotacionVerde, RISING); // Interrupción para el pulsador verde
+}
+
+// Función que se ejecuta al presionar el pulsador rojo
+void anotacionRojo() {
+    tiempoI = millis(); // Captura el tiempo actual
+    pulsadorRojo = true; // Marca que el pulsador rojo fue presionado
+    controlarRGB(255, 0, 0); // Enciende el LED rojo
+    j++; // Incrementa el contador j
+    contador(j); // Muestra el valor actual de j
+    for (int h = 0; h <= 150; h++) {
+        delayMicroseconds(10000); // Espera para evitar rebotes del botón
+    }
+    controlarRGB(0, 0, 0); // Apaga el LED RGB
+}
+
+// Función que se ejecuta al presionar el pulsador verde
+void anotacionVerde() {
+    pulsadorVerde = true; // Marca que el pulsador verde fue presionado
+    controlarRGB(0, 255, 0); // Enciende el LED verde
+    k++; // Incrementa el contador k
+    contador(k); // Muestra el valor actual de k
+    for (int h = 0; h <= 150; h++) {
+        delayMicroseconds(10000); // Espera para evitar rebotes del botón
+    }
+    controlarRGB(0, 0, 0); // Apaga el LED RGB
+}
+
+// Función para parpadear el segmento G (no está siendo utilizada en el código actual)
+void parpadeoG() {
+    contador(g); // Muestra el valor de g
+    delay(500);
+    contador(21); // Muestra el valor 21
+    delay(500);
+}
+
+// Función para controlar el RGB y mostrar información para el verde (no utilizada)
+void anotacionV() {
+    controlarRGB(0, 255, 0); // Enciende el LED verde
+    j++; // Incrementa el contador j
+    contador(j); // Muestra el valor actual de j
+    delay(3000);
+    controlarRGB(0, 0, 0); // Apaga el LED RGB
+}
+
+// Función para controlar el RGB y mostrar información para el rojo (no utilizada)
+void anotacionR() {
+    controlarRGB(255, 0, 0); // Enciende el LED rojo
+    j++; // Incrementa el contador j
+    contador(j); // Muestra el valor actual de j
+    delay(3000);
+    controlarRGB(0, 0, 0); // Apaga el LED RGB
+}
+
+// Función para controlar el display de 7 segmentos
+void display(int a, int b, int c, int d, int e, int f, int g) {
+    digitalWrite(9, a);
+    digitalWrite(10, b);
+    digitalWrite(4, c);
+    digitalWrite(5, d);
+    digitalWrite(6, e);
+    digitalWrite(7, f);
+    digitalWrite(8, g);
+}
+
+// Función para encender el LED RGB
+void controlarRGB(int a, int b, int c) {
+    analogWrite(A0, a); // Rojo
+    analogWrite(A1, b); // Verde
+    analogWrite(A2, c); // Azul
+}
+
+// Función contador para mostrar el incremento o decremento
+void contador(int h) {
+    // Controla el display según el valor de h
+    if (h == 0) {
+        display(1, 1, 1, 1, 1, 1, 0); // Muestra 0
+    }
+    if (h == 1) {
+        display(0, 1, 1, 0, 0, 0, 0); // Muestra 1
+    }
+    if (h == 2) {
+        display(1, 1, 0, 1, 1, 0, 1); // Muestra 2
+    }
+    if (h == 3) {
+        display(1, 1, 1, 1, 0, 0, 1); // Muestra 3
+    }
+    if (h == 4) {
+        display(0, 1, 1, 0, 0, 1, 1); // Muestra 4
+    }
+    if (h == 5) {
+        display(1, 0, 1, 1, 0, 1, 1); // Muestra 5
+    }
+    // Agrega más condiciones para valores de h hasta 21
+    if (h == 20) {
+        display(0, 0, 0, 0, 0, 0, 1); // Muestra 20
+    }
+    if (h == 21) {
+        display(0, 0, 0, 0, 0, 0, 0); // Muestra 21
+    }
+}
+
+void loop() {
+    int cuarto = 0; // Contador para las repeticiones
+    int marcador = 0; // Contador para el marcador
+    // Bucle para contar hasta 15
+    for (cuarto; cuarto < 4; cuarto++) {
+        Serial.println(cuarto); // Muestra el número de la vuelta
+        for (marcador; marcador <= 15; marcador++) {
+            Serial.println(marcador); // Muestra el valor actual del marcador
+            contador(marcador); // Muestra el marcador en el display
+            delay(1000); // Espera 1 segundo
+        }
+        marcador = 0; // Reinicia el marcador
+        delay(2000); // Espera 2 segundos antes de la siguiente vuelta
+    }
+    digitalWrite(12, HIGH); // Enciende un LED o indicación en el pin 12
+    contador(k); // Muestra el contador k
+    controlarRGB(0, 255, 0); // Enciende el LED verde
+    delay(1000); // Espera 1 segundo
+    contador(j); // Muestra el contador j
+    controlarRGB(255, 0, 0); // Enciende el LED rojo
+    delay(1000); // Espera 1 segundo
+    contador(21); // Muestra 21 en el display
+    digitalWrite(12, LOW); // Apaga el LED en el pin 12
+    controlarRGB(0, 0, 0); // Apaga el LED RGB
+    delay(20000); // Espera 20 segundos antes de reiniciar
+    j = 0; // Reinicia el contador j
+    k = 0; // Reinicia el contador k
+}
