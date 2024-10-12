@@ -1,0 +1,87 @@
+// Laboratorio de Sistemas Embebidos
+// Circuito de simulación de luces
+// 9 de junio de 2023
+// Hernández
+
+// Declaración de variables
+int i, j, k; 
+unsigned long tiempo; // Variable para almacenar el tiempo
+int umbral = 850; // Umbral de luz para encender/apagar LEDs
+int numLEDsApagados = 0; // Contador de LEDs apagados
+
+void setup() {
+    Serial.begin(9600); // Inicializa la comunicación serie a 9600 baudios
+    for (i = 2; i <= 13; i++) { 
+        pinMode(i, OUTPUT); // Configura los pines 2 a 13 como salidas
+        digitalWrite(i, LOW); // Asegura que todos los LEDs estén apagados al inicio
+    }
+}
+
+// Función para mostrar números en un display de 7 segmentos
+void display(int a, int b, int c, int d, int e, int f, int g) {
+    digitalWrite(2, a); // Controla el segmento A del display
+    digitalWrite(3, b); // Controla el segmento B del display
+    digitalWrite(4, c); // Controla el segmento C del display
+    digitalWrite(5, d); // Controla el segmento D del display
+    digitalWrite(6, e); // Controla el segmento E del display
+    digitalWrite(7, f); // Controla el segmento F del display
+    digitalWrite(8, g); // Controla el segmento G del display
+}
+
+// Función para contar y mostrar el número de LEDs apagados
+void contador(int h) {
+    // Dependiendo del valor de h, enciende los segmentos del display
+    if (h == 0) {
+        display(1, 1, 1, 1, 1, 1, 0); // Muestra 0
+    }
+    if (h == 1) {
+        display(0, 1, 1, 0, 0, 0, 0); // Muestra 1
+    }
+    if (h == 2) {
+        display(1, 1, 0, 1, 1, 0, 1); // Muestra 2
+    }
+    if (h == 3) {
+        display(1, 1, 1, 1, 0, 0, 1); // Muestra 3
+    }
+    if (h == 4) {
+        display(0, 1, 1, 0, 0, 1, 1); // Muestra 4
+    }
+    if (h == 5) {
+        display(1, 0, 1, 1, 0, 1, 1); // Muestra 5
+    }
+}
+
+void loop() {
+    numLEDsApagados = 0; // Reiniciar el contador de LEDs apagados en cada iteración
+    tiempo = millis() / 1000; // Obtener el tiempo transcurrido en segundos
+
+    // Leer valores de cinco sensores analógicos
+    int valorF1 = analogRead(A0); 
+    int valorF2 = analogRead(A1); 
+    int valorF3 = analogRead(A2); 
+    int valorF4 = analogRead(A3); 
+    int valorF5 = analogRead(A4); 
+
+    // Almacenar los valores leídos en un arreglo
+    int valorSensores[5] = {valorF1, valorF2, valorF3, valorF4, valorF5};
+    int pinesLED[5] = {9, 10, 11, 12, 13}; // Pines a los que están conectados los LEDs
+
+    // Bucle para verificar el estado de cada sensor y LED
+    for (int m = 0; m < 5; m++) {
+        // Si el valor del sensor es menor o igual al umbral
+        if (valorSensores[m] <= umbral) {
+            digitalWrite(pinesLED[m], HIGH); // Enciende el LED
+            Serial.print("Luminaria ");
+            Serial.print(m); // Muestra el número del sensor
+            Serial.print(": ");
+            Serial.print(tiempo); // Muestra el tiempo transcurrido
+            Serial.print(" segundos\n");
+        } else {
+            digitalWrite(pinesLED[m], LOW); // Apaga el LED
+            numLEDsApagados++; // Incrementa el contador de LEDs apagados
+            contador(numLEDsApagados); // Muestra el conteo de LEDs apagados
+        }
+    }
+    
+    delay(3000); // Espera 3 segundos antes de la próxima lectura
+}
